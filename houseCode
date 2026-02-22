@@ -1,0 +1,191 @@
+
+
+
+
+# # Step 1: Upload zip file
+# from google.colab import files
+# uploaded = files.upload()  # Click “Choose Files” and upload your zip file
+
+# import zipfile
+# import io
+# import os
+
+# # Step 2: Extract uploaded zip
+# for fn in uploaded.keys():
+#     with zipfile.ZipFile(io.BytesIO(uploaded[fn]), 'r') as zip_ref:
+#         zip_ref.extractall()
+#         print(f"Extracted files: {zip_ref.namelist()}")  # দেখাবে zip এর ভিতরের filenames
+
+# # Step 3: Check extracted CSV file name
+# # Suppose zip has "titanic.csv" or similar
+# csv_files = [f for f in os.listdir() if f.endswith('.csv')]
+# print("CSV files in directory:", csv_files)
+
+# # Step 4: Load the CSV file (replace with correct filename from above)
+# import pandas as pd
+# import numpy as np
+# from sklearn.model_selection import train_test_split
+# from sklearn.preprocessing import StandardScaler
+
+# df = pd.read_csv(csv_files[0])  # যদি zip এর ভিতরে একটাই csv থাকে
+
+# # Step 5: Check first 5 rows
+# print(df.head())
+
+# # Step 6: Basic info about dataset
+# print(df.shape)
+# print(df.info())
+# print(df.describe())
+
+# # Step 7: Missing values handling
+# print("Missing values:\n", df.isnull().sum())
+
+# # Fill numeric missing values with mean
+# df.fillna(df.mean(), inplace=True)
+
+# # Drop rows with missing categorical values (optional)
+# df.dropna(inplace=True)
+
+# # Step 8: Encode categorical columns
+# if 'Sex' in df.columns:
+#     df['Sex'] = df['Sex'].map({'male': 0, 'female': 1})
+
+# # Encode all other categorical variables using get_dummies
+# df = pd.get_dummies(df)
+
+# # Step 9: Split features and target
+# # Replace 'Survived' if your target column name is different
+# X = df.drop("Survived", axis=1)
+# y = df["Survived"]
+
+# # Step 10: Train-test split
+# X_train, X_test, y_train, y_test = train_test_split(
+#     X, y, test_size=0.2, random_state=42
+# )
+
+# # Step 11: Optional feature scaling
+# scaler = StandardScaler()
+# X_train = scaler.fit_transform(X_train)
+# X_test = scaler.transform(X_test)
+
+# # Step 12: Shapes of final data
+# print("X_train shape:", X_train.shape)
+# print("X_test shape:", X_test.shape)
+# print("y_train shape:", y_train.shape)
+# print("y_test shape:", y_test.shape)
+
+
+
+
+# ===============================
+# STEP 1: Upload ZIP file
+# ===============================
+
+from google.colab import files
+uploaded = files.upload()
+
+import zipfile
+import io
+import os
+
+# Extract ZIP
+for fn in uploaded.keys():
+    with zipfile.ZipFile(io.BytesIO(uploaded[fn]), 'r') as zip_ref:
+        zip_ref.extractall()
+        print("Extracted files:", zip_ref.namelist())
+
+# ===============================
+# STEP 2: Find CSV File
+# ===============================
+
+csv_files = [f for f in os.listdir() if f.endswith('.csv')]
+print("CSV files found:", csv_files)
+
+# ===============================
+# STEP 3: Load Dataset
+# ===============================
+
+import pandas as pd
+import numpy as np
+
+df = pd.read_csv(csv_files[0])
+
+print("\nFirst 5 rows:")
+print(df.head())
+
+print("\nDataset Shape:")
+print(df.shape)
+
+print("\nDataset Info:")
+print(df.info())
+
+print("\nSummary Statistics:")
+print(df.describe())
+
+# ===============================
+# STEP 4: Check Missing Values
+# ===============================
+
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+# ===============================
+# STEP 5: Handle Missing Values Properly
+# ===============================
+
+# Fill numeric columns with mean
+numeric_cols = df.select_dtypes(include=np.number).columns
+df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
+
+# Fill categorical columns with mode
+categorical_cols = df.select_dtypes(include='object').columns
+for col in categorical_cols:
+    df[col] = df[col].fillna(df[col].mode()[0])
+
+# ===============================
+# STEP 6: Encode Categorical Data
+# ===============================
+
+df = pd.get_dummies(df, drop_first=True)
+
+print("\nAfter Encoding:")
+print(df.head())
+
+# ===============================
+# STEP 7: Define Features and Target
+# ===============================
+
+# For House Price dataset, target is "Price"
+X = df.drop("Price", axis=1)
+y = df["Price"]
+
+# ===============================
+# STEP 8: Train-Test Split
+# ===============================
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# ===============================
+# STEP 9: Feature Scaling
+# ===============================
+
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# ===============================
+# STEP 10: Final Shapes
+# ===============================
+
+print("\nFinal Shapes:")
+print("X_train:", X_train.shape)
+print("X_test:", X_test.shape)
+print("y_train:", y_train.shape)
+print("y_test:", y_test.shape)
