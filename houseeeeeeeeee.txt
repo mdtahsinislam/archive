@@ -1,0 +1,429 @@
+# # ==============================
+# # STEP 0: Install Libraries
+# # ==============================
+# !pip install tensorflow scikit-learn pandas numpy matplotlib seaborn
+
+# # ==============================
+# # STEP 1: Upload ZIP Dataset
+# # ==============================
+# from google.colab import files
+# uploaded = files.upload()
+
+# import zipfile, io, os
+
+# for fn in uploaded.keys():
+#     with zipfile.ZipFile(io.BytesIO(uploaded[fn]), 'r') as zip_ref:
+#         zip_ref.extractall()
+#         print("Extracted:", zip_ref.namelist())
+
+# # ==============================
+# # STEP 2: Load Dataset
+# # ==============================
+# import pandas as pd
+# import numpy as np
+
+# csv_files = [f for f in os.listdir() if f.endswith('.csv')]
+# df = pd.read_csv(csv_files[0])
+
+# print(df.head())
+# print(df.info())
+
+# # ==============================
+# # STEP 3: Data Preprocessing
+# # ==============================
+
+# # Missing values
+# numeric_cols = df.select_dtypes(include=np.number).columns
+# df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
+
+# categorical_cols = df.select_dtypes(include='object').columns
+# for col in categorical_cols:
+#     df[col] = df[col].fillna(df[col].mode()[0])
+
+# # Encoding
+# df = pd.get_dummies(df, drop_first=True)
+
+# # Target
+# TARGET = "Price"   # যদি অন্য নাম হয় change করো
+# X = df.drop(TARGET, axis=1)
+# y = df[TARGET]
+
+# # Split
+# from sklearn.model_selection import train_test_split
+# X_train, X_test, y_train, y_test = train_test_split(
+#     X, y, test_size=0.2, random_state=42
+# )
+
+# # Scaling
+# from sklearn.preprocessing import StandardScaler
+# scaler = StandardScaler()
+# X_train = scaler.fit_transform(X_train)
+# X_test = scaler.transform(X_test)
+
+# # ==============================
+# # STEP 4: Machine Learning Models
+# # ==============================
+
+# from sklearn.linear_model import LinearRegression
+# from sklearn.ensemble import RandomForestRegressor
+
+# lr = LinearRegression()
+# rf = RandomForestRegressor(n_estimators=100)
+
+# lr.fit(X_train, y_train)
+# rf.fit(X_train, y_train)
+
+# y_pred_lr = lr.predict(X_test)
+# y_pred_rf = rf.predict(X_test)
+
+# # ==============================
+# # STEP 5: Deep Learning Model
+# # ==============================
+
+# import tensorflow as tf
+# from tensorflow import keras
+
+# model = keras.Sequential([
+#     keras.layers.Dense(128, activation='relu', input_shape=(X_train.shape[1],)),
+#     keras.layers.Dense(64, activation='relu'),
+#     keras.layers.Dense(32, activation='relu'),
+#     keras.layers.Dense(1)
+# ])
+
+# model.compile(
+#     optimizer='adam',
+#     loss='mse',
+#     metrics=['mae']
+# )
+
+# history = model.fit(
+#     X_train, y_train,
+#     epochs=50,
+#     batch_size=32,
+#     validation_split=0.2,
+#     verbose=1
+# )
+
+# y_pred_dl = model.predict(X_test)
+
+# # ==============================
+# # STEP 6: Evaluation
+# # ==============================
+
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import numpy as np
+
+# def evaluate(y_true, y_pred, name):
+#     print(f"\n{name} RESULTS")
+#     print("MAE:", mean_absolute_error(y_true, y_pred))
+#     print("RMSE:", np.sqrt(mean_squared_error(y_true, y_pred)))
+#     print("R2:", r2_score(y_true, y_pred))
+
+# evaluate(y_test, y_pred_lr, "Linear Regression")
+# evaluate(y_test, y_pred_rf, "Random Forest")
+# evaluate(y_test, y_pred_dl, "Deep Learning")
+
+# # ==============================
+# # STEP 7: Visualization
+# # ==============================
+
+# import matplotlib.pyplot as plt
+
+# plt.plot(history.history['loss'], label='Train Loss')
+# plt.plot(history.history['val_loss'], label='Validation Loss')
+# plt.legend()
+# plt.title("Training vs Validation Loss")
+# plt.show()
+
+
+
+# # ==============================
+# # STEP 8: Evaluation Metrics Graph
+# # ==============================
+
+# from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+# import numpy as np
+# import pandas as pd
+# import matplotlib.pyplot as plt
+
+# # Calculate metrics
+# mae_lr = mean_absolute_error(y_test, y_pred_lr)
+# rmse_lr = np.sqrt(mean_squared_error(y_test, y_pred_lr))
+# r2_lr = r2_score(y_test, y_pred_lr)
+
+# mae_rf = mean_absolute_error(y_test, y_pred_rf)
+# rmse_rf = np.sqrt(mean_squared_error(y_test, y_pred_rf))
+# r2_rf = r2_score(y_test, y_pred_rf)
+
+# mae_dl = mean_absolute_error(y_test, y_pred_dl)
+# rmse_dl = np.sqrt(mean_squared_error(y_test, y_pred_dl))
+# r2_dl = r2_score(y_test, y_pred_dl)
+
+# # Create DataFrame
+# results = pd.DataFrame({
+#     "Model": ["Linear Regression", "Random Forest", "Deep Learning"],
+#     "MAE": [mae_lr, mae_rf, mae_dl],
+#     "RMSE": [rmse_lr, rmse_rf, rmse_dl],
+#     "R2": [r2_lr, r2_rf, r2_dl]
+# })
+
+# print("\n📊 Final Metrics Table:")
+# print(results)
+
+# # ==============================
+# # Graph 1: MAE & RMSE Comparison
+# # ==============================
+
+# results.set_index("Model")[["MAE", "RMSE"]].plot(kind="bar")
+# plt.title("MAE & RMSE Comparison")
+# plt.xlabel("Model")
+# plt.ylabel("Error Value")
+# plt.xticks(rotation=0)
+# plt.show()
+
+# # ==============================
+# # Graph 2: R² Score Comparison
+# # ==============================
+
+# results.set_index("Model")["R2"].plot(kind="bar")
+# plt.title("R² Score Comparison")
+# plt.xlabel("Model")
+# plt.ylabel("R² Score")
+# plt.xticks(rotation=0)
+# plt.show()
+
+
+
+# ==============================
+# STEP 0: Install Libraries
+# ==============================
+!pip install tensorflow scikit-learn pandas numpy matplotlib seaborn
+
+# ==============================
+# STEP 1: Upload ZIP Dataset
+# ==============================
+from google.colab import files
+uploaded = files.upload()
+
+import zipfile, io, os
+
+for fn in uploaded.keys():
+    with zipfile.ZipFile(io.BytesIO(uploaded[fn]), 'r') as zip_ref:
+        zip_ref.extractall()
+        print("Extracted:", zip_ref.namelist())
+
+# ==============================
+# STEP 2: Load Dataset
+# ==============================
+import pandas as pd
+import numpy as np
+
+csv_files = [f for f in os.listdir() if f.endswith('.csv')]
+df = pd.read_csv(csv_files[0])
+
+print("\nFirst 5 rows:")
+print(df.head())
+
+print("\nDataset Info:")
+print(df.info())
+
+# ==============================
+# STEP 3: Data Preprocessing
+# ==============================
+
+# Handle missing values
+numeric_cols = df.select_dtypes(include=np.number).columns
+df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
+
+categorical_cols = df.select_dtypes(include='object').columns
+for col in categorical_cols:
+    df[col] = df[col].fillna(df[col].mode()[0])
+
+# Encoding categorical data
+df = pd.get_dummies(df, drop_first=True)
+
+# Target column (change if needed)
+TARGET = "Price"
+
+X = df.drop(TARGET, axis=1)
+y = df[TARGET]
+
+# Train-test split
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Feature scaling
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# ==============================
+# STEP 4: Machine Learning Models
+# ==============================
+
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+
+lr = LinearRegression()
+rf = RandomForestRegressor(n_estimators=100)
+
+lr.fit(X_train, y_train)
+rf.fit(X_train, y_train)
+
+y_pred_lr = lr.predict(X_test)
+y_pred_rf = rf.predict(X_test)
+
+# ==============================
+# STEP 5: Deep Learning Model
+# ==============================
+
+import tensorflow as tf
+from tensorflow import keras
+
+model = keras.Sequential([
+    keras.layers.Dense(128, activation='relu', input_shape=(X_train.shape[1],)),
+    keras.layers.Dense(64, activation='relu'),
+    keras.layers.Dense(32, activation='relu'),
+    keras.layers.Dense(1)
+])
+
+model.compile(
+    optimizer='adam',
+    loss='mse',
+    metrics=['mae']
+)
+
+history = model.fit(
+    X_train, y_train,
+    epochs=50,
+    batch_size=32,
+    validation_split=0.2,
+    verbose=1
+)
+
+y_pred_dl = model.predict(X_test)
+
+# ==============================
+# STEP 6: Evaluation Metrics
+# ==============================
+
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+def evaluate(y_true, y_pred, name):
+    mae = mean_absolute_error(y_true, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+    r2 = r2_score(y_true, y_pred)
+
+    print(f"\n📊 {name} Results")
+    print(f"MAE  : {mae:.2f}")
+    print(f"RMSE : {rmse:.2f}")
+    print(f"R²   : {r2:.4f}")
+
+    return mae, rmse, r2
+
+mae_lr, rmse_lr, r2_lr = evaluate(y_test, y_pred_lr, "Linear Regression")
+mae_rf, rmse_rf, r2_rf = evaluate(y_test, y_pred_rf, "Random Forest")
+mae_dl, rmse_dl, r2_dl = evaluate(y_test, y_pred_dl, "Deep Learning")
+
+# ==============================
+# STEP 7: Training Graph
+# ==============================
+
+import matplotlib.pyplot as plt
+
+plt.figure()
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.legend()
+plt.title("Training vs Validation Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.show()
+
+# ==============================
+# STEP 8: Metrics Comparison Graph
+# ==============================
+
+import pandas as pd
+
+results = pd.DataFrame({
+    "Model": ["Linear Regression", "Random Forest", "Deep Learning"],
+    "MAE": [mae_lr, mae_rf, mae_dl],
+    "RMSE": [rmse_lr, rmse_rf, rmse_dl],
+    "R2": [r2_lr, r2_rf, r2_dl]
+})
+
+print("\n📊 Final Comparison Table:")
+print(results)
+
+# MAE & RMSE Graph
+print("\n📊 MAE & RMSE Graph:")
+plt.figure()
+results.set_index("Model")[["MAE", "RMSE"]].plot(kind="bar")
+plt.title("MAE & RMSE Comparison")
+plt.ylabel("Error")
+plt.xticks(rotation=0)
+plt.show()
+print("\n📊 R2 Graph:")
+# R2 Graph
+plt.figure()
+results.set_index("Model")["R2"].plot(kind="bar")
+plt.title("R² Score Comparison")
+plt.ylabel("Score")
+plt.xticks(rotation=0)
+plt.show()
+
+# ==============================
+# STEP 8: Combined Metrics Graph
+# ==============================
+
+# import pandas as pd
+# import matplotlib.pyplot as plt
+# import numpy as np
+
+# results = pd.DataFrame({
+#     "Model": ["Linear Regression", "Random Forest", "Deep Learning"],
+#     "MAE": [mae_lr, mae_rf, mae_dl],
+#     "RMSE": [rmse_lr, rmse_rf, rmse_dl],
+#     "R2": [r2_lr, r2_rf, r2_dl]
+# })
+
+# print("\n📊 Final Metrics Table:")
+# print(results)
+
+# # ==============================
+# # Combined Bar Chart
+# # ==============================
+
+# labels = results["Model"]
+# mae = results["MAE"]
+# rmse = results["RMSE"]
+# r2 = results["R2"]
+
+# x = np.arange(len(labels))  # label positions
+# width = 0.25  # bar width
+
+# plt.figure(figsize=(10,6))
+
+# plt.bar(x - width, mae, width, label='MAE')
+# plt.bar(x, rmse, width, label='RMSE')
+# plt.bar(x + width, r2, width, label='R²')
+
+# plt.xlabel("Models")
+# plt.ylabel("Score")
+# plt.title("Model Performance Comparison")
+# plt.xticks(x, labels, rotation=0)
+# plt.legend()
+
+# plt.show()
+
+# MAE  RMSE R2 three are in one graph please 
+
+# ==============================
+# STEP 8: Metrics Comparison Graph (Combined)
+# ==============================
+
