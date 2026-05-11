@@ -1,0 +1,178 @@
+
+# =============================================================
+# Grapevine Image Classification (NB + RF + KNN)
+
+# Same structure as your previous code — Only models are changed
+# =============================================================
+
+# ---------- STEP 0: Install dependencies (Colab) -------------
+!pip install opencv-python-headless joblib scikit-learn matplotlib pillow --quiet
+
+# ---------- STEP 1: Imports & helpers ------------------------
+import os, zipfile, io
+import numpy as np
+import matplotlib.pyplot as plt
+from collections import Counter
+from PIL import Image, UnidentifiedImageError
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, accuracy_score
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
+import joblib
+from google.colab import files
+
+# ---------- STEP 2: Upload ZIP (only accept a .zip) -----------
+print("⬆️ Please upload the dataset ZIP ")
+uploaded = files.upload()
+
+zip_path = None
+for name in uploaded:
+    if name.lower().endswith('.zip'):
+        zip_path = name
+        break
+
+if zip_path is None:
+    raise SystemExit("❌ No .zip file uploaded. Upload dataset ZIP & re-run.")
+
+# ---------- STEP 3: Extract dataset --------------------------
+extract_dir = "/content/grapevine_dataset"
+os.makedirs(extract_dir, exist_ok=True)
+
+with zipfile.ZipFile(zip_path, 'r') as z:
+    z.extractall(extract_dir)
+
+print("✅ Dataset extracted to:", extract_dir)
+
+# ---------- STEP 4: Load images from folders -----------------
+records = []
+valid_ext = ('.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff')
+
+for root, dirs, files_ in os.walk(extract_dir):
+    for f in files_:
+        if f.lower().endswith(valid_ext):
+            class_name = os.path.basename(root)
+            records.append({'path': os.path.join(root, f), 'class': class_name})
+
+print("Total images found:", len(records))
+print("Class counts:", dict(Counter([r['class'] for r in records])))
+
+# ---------- STEP 5: Feature extraction ------------------------
+IMG_SIZE = (128, 128)
+SMALL_SIZE = (16, 16)
+
+def load_image(path, size=IMG_SIZE):
+    img = Image.open(path).convert('RGB')
+    img = img.resize(size)
+    return np.array(img)
+
+def extract_features(path):
+    img = load_image(path)
+    chans = [img[:,:,c] for c in range(3)]
+    color_hist = [np.histogram(ch.ravel(), bins=32, range=(0,256))[0] for ch in chans]
+    color_hist = np.concatenate(color_hist).astype(np.float32)
+
+    gray = np.dot(img, [0.299, 0.587, 0.114]).astype(np.uint8)
+    gray_hist = np.histogram(gray.ravel(), bins=64, range=(0,256))[0].astype(np.float32)
+
+    small = Image.fromarray(gray).resize(SMALL_SIZE)
+    small_flat = np.array(small).ravel().astype(np.float32)
+
+    feat = np.concatenate([color_hist, gray_hist, small_flat])
+    feat = feat / (np.linalg.norm(feat) + 1e-8)
+    return feat
+
+X, y = [], []
+skipped = 0
+
+print("🔍 Extracting features...")
+
+for r in records:
+    try:
+        X.append(extract_features(r["path"]))
+        y.append(r["class"])
+    except:
+        skipped += 1
+
+print("Skipped images:", skipped)
+X = np.array(X)
+y = np.array(y)
+
+# ---------- STEP 6: Encode & Split ---------------------------
+le = LabelEncoder()
+y_enc = le.fit_transform(y)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y_enc, test_size=0.25, stratify=y_enc, random_state=42
+)
+
+scaler = StandardScaler()
+X_train_s = scaler.fit_transform(X_train)
+X_test_s = scaler.transform(X_test)
+
+# ---------- STEP 7: Train Models -----------------------------
+print("⏳ Training models...")
+
+nb_clf = GaussianNB()
+nb_clf.fit(X_train_s, y_train)
+
+rf_clf = RandomForestClassifier(n_estimators=200, random_state=42)
+rf_clf.fit(X_train_s, y_train)
+
+knn_clf = KNeighborsClassifier(n_neighbors=5)
+knn_clf.fit(X_train_s, y_train)
+
+print("✅ Models trained successfully!")
+
+# ---------- STEP 8: Evaluate ---------------------------------
+def evaluate_model(model, name):
+    pred = model.predict(X_test_s)
+    print(f"\n🔹 {name} Results 🔹")
+    print("Accuracy:", accuracy_score(y_test, pred))
+    print(classification_report(y_test, pred, target_names=le.classes_))
+
+    cm = confusion_matrix(y_test, pred)
+    fig, ax = plt.subplots(figsize=(6,6))
+    disp = ConfusionMatrixDisplay(cm, display_labels=le.classes_)
+    disp.plot(ax=ax, xticks_rotation='vertical', cmap='Purples')
+    ax.set_title(f"{name} - Confusion Matrix")
+    plt.show()
+
+
+evaluate_model(knn_clf, "KNN")
+
+# ---------- STEP 9: Save Models for Deployment ---------------
+out_dir = "/content/models_nb_rf_knn"
+os.makedirs(out_dir, exist_ok=True)
+
+joblib.dump(scaler, os.path.join(out_dir, "scaler.joblib"))
+joblib.dump(nb_clf, os.path.join(out_dir, "naive_bayes.joblib"))
+joblib.dump(rf_clf, os.path.join(out_dir, "random_forest.joblib"))
+joblib.dump(knn_clf, os.path.join(out_dir, "knn.joblib"))
+joblib.dump(le, os.path.join(out_dir, "label_encoder.joblib"))
+
+print("\n💾 Models saved inside:", out_dir)
+
+for fname in os.listdir(out_dir):
+    files.download(os.path.join(out_dir, fname))
+
+
+
+# ---------- STEP 10: Display Sample Images -------------------
+print("\n📌 Sample images preview")
+plt.figure(figsize=(10,6))
+count = 0
+for cls in le.classes_[:8]:
+    for r in records:
+        if r["class"] == cls:
+            img = Image.open(r["path"]).convert("RGB")
+            plt.subplot(2,4,count+1)
+            plt.imshow(img)
+            plt.title(cls)
+            plt.axis("off")
+            count += 1
+            break
+plt.tight_layout()
+plt.show()
+
